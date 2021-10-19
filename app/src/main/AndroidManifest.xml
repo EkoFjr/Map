@@ -19,7 +19,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyD2KX8TzlhZv0iC9cvByYqsJkre16q-9IA" />
+            android:value="MASUKKAN KUNCI API DISINI" />
 
         <activity
             android:name=".MapsActivity"
