@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.Toolbar;
@@ -171,53 +172,56 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         Task<FindCurrentPlaceResponse> placeResponse = mPlacesClient.findCurrentPlace(request);
         placeResponse.addOnCompleteListener(this,
-                task -> {
-                    if (task.isSuccessful()) {
-                        FindCurrentPlaceResponse response = task.getResult();
-
-                        int count;
-                        if (response.getPlaceLikelihoods().size() < M_MAX_ENTRIES) {
-                            count = response.getPlaceLikelihoods().size();
-                        } else {
-                            count = M_MAX_ENTRIES;
-                        }
-
-                        int i = 0;
-                        mLikelyPlaceNames = new String[count];
-                        mLikelyPlaceAddresses = new String[count];
-                        mLikelyPlaceAttributions = new String[count];
-                        mLikelyPlaceLatLngs = new LatLng[count];
-
-                        for (PlaceLikelihood placeLikelihood : response.getPlaceLikelihoods()) {
-                            Place currPlace = placeLikelihood.getPlace();
-                            mLikelyPlaceNames[i] = currPlace.getName();
-                            mLikelyPlaceAddresses[i] = currPlace.getAddress();
-                            mLikelyPlaceAttributions[i] = (currPlace.getAttributions() == null) ?
-                                    null : TextUtils.join(" ", currPlace.getAttributions());
-                            mLikelyPlaceLatLngs[i] = currPlace.getLatLng();
-
-                            String currLatLng = (mLikelyPlaceLatLngs[i] == null) ?
-                                    "" : mLikelyPlaceLatLngs[i].toString();
-
-                            Log.i(TAG, String.format("Place " + currPlace.getName()
-                                    + " has likelihood: " + placeLikelihood.getLikelihood()
-                                    + " at " + currLatLng));
-
-                            i++;
-                            if (i > (count - 1)) {
-                                break;
+                new OnCompleteListener<FindCurrentPlaceResponse>() {
+                    @Override
+                    public void onComplete(@NonNull Task<FindCurrentPlaceResponse> task) {
+                        if (task.isSuccessful()) {
+                            FindCurrentPlaceResponse response = task.getResult();
+                            // Set the count, handling cases where less than 5 entries are returned.
+                            int count;
+                            if (response.getPlaceLikelihoods().size() < M_MAX_ENTRIES) {
+                                count = response.getPlaceLikelihoods().size();
+                            } else {
+                                count = M_MAX_ENTRIES;
                             }
-                        }
+
+                            int i = 0;
+                            mLikelyPlaceNames = new String[count];
+                            mLikelyPlaceAddresses = new String[count];
+                            mLikelyPlaceAttributions = new String[count];
+                            mLikelyPlaceLatLngs = new LatLng[count];
+
+                            for (PlaceLikelihood placeLikelihood : response.getPlaceLikelihoods()) {
+                                Place currPlace = placeLikelihood.getPlace();
+                                mLikelyPlaceNames[i] = currPlace.getName();
+                                mLikelyPlaceAddresses[i] = currPlace.getAddress();
+                                mLikelyPlaceAttributions[i] = (currPlace.getAttributions() == null) ?
+                                        null : TextUtils.join(" ", currPlace.getAttributions());
+                                mLikelyPlaceLatLngs[i] = currPlace.getLatLng();
+
+                                String currLatLng = (mLikelyPlaceLatLngs[i] == null) ?
+                                        "" : mLikelyPlaceLatLngs[i].toString();
+
+                                Log.i(TAG, String.format("Place " + currPlace.getName()
+                                        + " has likelihood: " + placeLikelihood.getLikelihood()
+                                        + " at " + currLatLng));
+
+                                i++;
+                                if (i > (count - 1)) {
+                                    break;
+                                }
+                            }
 
 
-                        // COMMENTED OUT UNTIL WE DEFINE THE METHOD
-                        // Populate the ListView
-                        fillPlacesList();
-                    } else {
-                        Exception exception = task.getException();
-                        if (exception instanceof ApiException) {
-                            ApiException apiException = (ApiException) exception;
-                            Log.e(TAG, "Place not found: " + apiException.getStatusCode());
+                            // COMMENTED OUT UNTIL WE DEFINE THE METHOD
+                            // Populate the ListView
+                            fillPlacesList();
+                        } else {
+                            Exception exception = task.getException();
+                            if (exception instanceof ApiException) {
+                                ApiException apiException = (ApiException) exception;
+                                Log.e(TAG, "Place not found: " + apiException.getStatusCode());
+                            }
                         }
                     }
                 });
@@ -228,13 +232,26 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         try {
             if (mLocationPermissionGranted) {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
                 Task<Location> locationResult = mFusedLocationProviderClient.getLastLocation();
                 locationResult.addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         // Set the map's camera position to the current location of the device.
                         mLastKnownLocation = task.getResult();
+                        Toast.makeText(this, "Lokasi Anda Ditemukan", Toast.LENGTH_SHORT).show();
+                        LatLng Mylocation = new LatLng(locationResult.getResult().getLatitude(),locationResult.getResult().getLongitude());
                         Log.d(TAG, "Latitude: " + mLastKnownLocation.getLatitude());
                         Log.d(TAG, "Longitude: " + mLastKnownLocation.getLongitude());
+                        mMap.addMarker(new MarkerOptions().position(Mylocation).title("Lokasi Anda Saat Ini").snippet("Latitude : " +locationResult.getResult().getLatitude()+". Longitude : " +locationResult.getResult().getLongitude()));
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                 new LatLng(mLastKnownLocation.getLatitude(),
                                         mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
