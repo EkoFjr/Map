@@ -242,15 +242,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 // for ActivityCompat#requestPermissions for more details.
                 return;
             }
-                Task<Location> locationResult = mFusedLocationProviderClient.getLastLocation();
+                final Task<Location> locationResult = mFusedLocationProviderClient.getLastLocation();
                 locationResult.addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         // Set the map's camera position to the current location of the device.
                         mLastKnownLocation = task.getResult();
                         Toast.makeText(this, "Lokasi Anda Ditemukan", Toast.LENGTH_SHORT).show();
-                        LatLng Mylocation = new LatLng(locationResult.getResult().getLatitude(),locationResult.getResult().getLongitude());
                         Log.d(TAG, "Latitude: " + mLastKnownLocation.getLatitude());
                         Log.d(TAG, "Longitude: " + mLastKnownLocation.getLongitude());
+                        LatLng Mylocation = new LatLng(locationResult.getResult().getLatitude(),locationResult.getResult().getLongitude());
                         mMap.addMarker(new MarkerOptions().position(Mylocation).title("Lokasi Anda Saat Ini").snippet("Latitude : " +locationResult.getResult().getLatitude()+". Longitude : " +locationResult.getResult().getLongitude()));
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                 new LatLng(mLastKnownLocation.getLatitude(),
